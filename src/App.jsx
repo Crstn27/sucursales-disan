@@ -11,7 +11,7 @@ function App() {
   const [open, setOpen] = useState(false);
   
   const toggleDrawer = (newState) => () => {
-    setOpen(!!newState);
+    setOpen(newState);
   };
   
   return (

@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { appApi } from "../api";
-import { onChecking, onCloseLogin, onLogin, onLogout } from "../store";
+import { onChecking, onCloseLogin, onCloseProgress, onLogin, onLogout, onOpenProgress } from "../store";
 import { useSnackbar } from "notistack";
 
 
@@ -11,6 +11,7 @@ export const useAuthStore = () => {
     
     const startLogin = async({email, password}) => {
         dispatch( onChecking() );
+        dispatch( onOpenProgress())
         try {
             const {data} = await appApi.post('/login', {email, password});
             localStorage.setItem('token', data.token);
@@ -21,6 +22,8 @@ export const useAuthStore = () => {
             console.log(response);
             
             dispatch( onLogout(response.data.error));
+        }finally {
+            dispatch( onCloseProgress())
         }        
     };
 

@@ -29,10 +29,13 @@ import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import DeleteIcon from '@mui/icons-material/Delete';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import { visuallyHidden } from '@mui/utils';
-import { AddCircle, Edit, EditNote, EditRoadTwoTone } from '@mui/icons-material';
+import { AddCircle, Edit } from '@mui/icons-material';
 import { useAuthStore } from '../hooks';
+import { useEffect } from 'react';
+import { useBranchesStore } from '../hooks/useBranchesStore';
+import { Avatar } from '@mui/material';
+import { getEnvVariables } from '../helpers';
 
 function createData(id, name, calories, fat, carbs, protein) {
   return {
@@ -46,7 +49,7 @@ function createData(id, name, calories, fat, carbs, protein) {
 }
 
 const rows = [
-  createData(1, 'Cupcake', 305, 3.7, 67, 4.3),
+  createData(0, 'Cupcake', 305, 3.7, 67, 4.3),
   createData(2, 'Donut', 452, 25.0, 51, 4.9),
   createData(3, 'Eclair', 262, 16.0, 24, 6.0),
   createData(4, 'Frozen yoghurt', 159, 6.0, 24, 4.0),
@@ -77,41 +80,41 @@ function getComparator(order, orderBy) {
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-const headCells = [
-  {
-    id: 'name',
-    numeric: false,
-    disablePadding: true,
-    label: 'Dessert (100g serving)',
-  },
-  {
-    id: 'calories',
-    numeric: true,
-    disablePadding: false,
-    label: 'Calories',
-  },
-  {
-    id: 'fat',
-    numeric: true,
-    disablePadding: false,
-    label: 'Fat (g)',
-  },
-  {
-    id: 'carbs',
-    numeric: true,
-    disablePadding: false,
-    label: 'Carbs (g)',
-  },
-  {
-    id: 'protein',
-    numeric: true,
-    disablePadding: false,
-    label: 'Protein (g)',
-  },
-];
+// const headCells = [
+//   {
+//     id: 'name',
+//     numeric: false,
+//     disablePadding: true,
+//     label: 'Dessert (100g serving)',
+//   },
+//   {
+//     id: 'calories',
+//     numeric: true,
+//     disablePadding: false,
+//     label: 'Calories',
+//   },
+//   {
+//     id: 'fat',
+//     numeric: true,
+//     disablePadding: false,
+//     label: 'Fat (g)',
+//   },
+//   {
+//     id: 'carbs',
+//     numeric: true,
+//     disablePadding: false,
+//     label: 'Carbs (g)',
+//   },
+//   {
+//     id: 'protein',
+//     numeric: true,
+//     disablePadding: false,
+//     label: 'Protein (g)',
+//   },
+// ];
 
 function EnhancedTableHead(props) {
-  const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
+  const { order, orderBy, numSelected, onRequestSort, dataHeadCells } =
     props;
   const createSortHandler = (property) => (event) => {
     if (numSelected > 0) return;
@@ -127,7 +130,7 @@ function EnhancedTableHead(props) {
         >
           N°
         </TableCell>
-        {headCells.map((headCell) => (
+        {dataHeadCells.map((headCell) => (
           <TableCell
             key={headCell.id}
             align={headCell.numeric ? 'right' : 'left'}
@@ -160,6 +163,7 @@ EnhancedTableHead.propTypes = {
   order: PropTypes.oneOf(['asc', 'desc']).isRequired,
   orderBy: PropTypes.string.isRequired,
   rowCount: PropTypes.number.isRequired,
+  dataHeadCells: PropTypes.array.isRequired
 };
 
 function EnhancedTableToolbar(props) {
@@ -227,9 +231,35 @@ export default function EnhancedTable() {
   const [selected, setSelected] = React.useState([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [dataHeadCells, setDataHeadCells] = React.useState([])
   const {status} = useAuthStore();
+  const { branches, getAllBranches } = useBranchesStore();
 
+  const { VITE_STORAGE_URL } = getEnvVariables();
 
+  useEffect(() => {
+    if (branches.length > 0) {
+      const dataHead = Object.keys(branches[0]).filter((key) => {
+        if (key !== 'id' && typeof branches[0][key] === 'string') {
+          return true;
+        }
+        return false;
+      }).map((key) => ({
+        id: key,
+        numeric: false,
+        disablePadding: false,
+        label: key.toUpperCase(),
+      }));
+
+      setDataHeadCells(dataHead);
+    }
+  }, [branches]);
+
+  useEffect(() => {
+    getAllBranches();
+  
+  }, [])
+  
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
@@ -238,7 +268,7 @@ export default function EnhancedTable() {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelected = rows.map((n) => n.id);
+      const newSelected = branches.map((n) => n.id);
       setSelected(newSelected);
       return;
     }
@@ -246,6 +276,8 @@ export default function EnhancedTable() {
   };
 
   const handleClick = (event, id) => {
+    if(status !== 'authenticated') return;
+
     const selectedIndex = selected.indexOf(id);
     let newSelected = [];
     
@@ -282,11 +314,11 @@ export default function EnhancedTable() {
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - branches.length) : 0;
 
   const visibleRows = React.useMemo(
     () =>
-      [...rows]
+      [...branches]
         .sort(getComparator(order, orderBy))
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [order, orderBy, page, rowsPerPage],
@@ -311,7 +343,8 @@ export default function EnhancedTable() {
               orderBy={orderBy}
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
-              rowCount={rows.length}
+              rowCount={branches.length}
+              dataHeadCells={dataHeadCells}
             />
             <TableBody>
               {visibleRows.map((row, index) => {
@@ -327,21 +360,49 @@ export default function EnhancedTable() {
                     tabIndex={-1}
                     key={row.id}
                     selected={isItemSelected}
-                    sx={((selected.length === 0 || isItemSelected))  && { cursor: 'pointer' }}
+                    sx={((selected.length === 0 || isItemSelected) && status === 'authenticated')  && { cursor: 'pointer' }}
                   >
                     <TableCell align="center">{++index}</TableCell>
-                    <TableCell
-                      component="th"
-                      id={labelId}
-                      scope="row"
-                      padding="none"
-                    >
-                      {row.name}
-                    </TableCell>
-                    <TableCell align="right">{row.calories}</TableCell>
+
+                    {dataHeadCells.map((headcell) => {
+                      return (
+                        <Tooltip 
+                          title={(headcell.id === 'imagen') ? row.nombre : row[headcell.id]} 
+                          key={`${headcell.id}-${row.id}`}
+                        >
+                          <TableCell
+                            key={`${headcell.id}-${row.id}`}
+                            component="th"
+                            id={`${headcell.id}-${row.id}`}
+                            scope="row"
+                            padding="none"
+                            align='left'
+                            sx={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '350px',
+                              minWidth:'200px' 
+                            }}
+                          >
+                            {(headcell.id === 'imagen')
+                              ? <Avatar
+                                  alt={`imagen de sucursal ${row.nombre}`}
+                                  src={`${VITE_STORAGE_URL}/${row.imagen}`}
+                                  sx={{ width: 35, height: 35 }}
+                                />
+                              : row[headcell.id]
+                            }
+                          </TableCell>
+
+                        </Tooltip>
+                      )
+                    })}
+                    
+                    {/* <TableCell align="right">{row.calories}</TableCell>
                     <TableCell align="right">{row.fat}</TableCell>
                     <TableCell align="right">{row.carbs}</TableCell>
-                    <TableCell align="right">{row.protein}</TableCell>
+                    <TableCell align="right">{row.protein}</TableCell> */}
                   </TableRow>
                 );
               })}
@@ -360,7 +421,7 @@ export default function EnhancedTable() {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={rows.length}
+          count={branches.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

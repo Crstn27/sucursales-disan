@@ -11,6 +11,10 @@ export const colorTheme = createTheme({
         },
         error: {
             main: red.A400
+        },
+        custom: {
+            main: '#9000e3',
+            contrastText: '#ffffff'
         }
     }
 })

@@ -1,10 +1,17 @@
-import { AccountCircle } from "@mui/icons-material"
+import { AccountCircle, Logout } from "@mui/icons-material"
 import { AppBar, IconButton, Menu, MenuItem, Toolbar, Typography } from "@mui/material"
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { onLogout, onOpenLogin } from "../store";
+import { useAuthStore } from "../hooks";
 
 
-export const NavBar = ({toggleDrawer}) => {
-    const [anchorEl, setAnchorEl] = useState(null);
+export const NavBar = () => {
+
+  const {status, user} = useAuthStore();
+  const dispatch = useDispatch();
+
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -12,17 +19,31 @@ export const NavBar = ({toggleDrawer}) => {
 
   const handleClose = () => {
     setAnchorEl(null);
-    toggleDrawer(true);
   };
+  
+  const onLogoutMenu = () => {
+    handleClose();
+    localStorage.removeItem('token');
+    localStorage.removeItem('token-init-date');
+    dispatch( onLogout());
+  }
+
+  const onLoginMenu = () => {
+    handleClose();
+    dispatch( onOpenLogin());
+  }
 
   return (
       
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Photos
+              Sucursales
             </Typography>
-            <div>
+            <div style={{display: "flex", flexDirection:'row', alignItems:'center', gap:'5px'}}>
+              <Typography display={status !== 'authenticated' ? 'none' : ''}>
+                {user.name}
+              </Typography>
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -30,8 +51,9 @@ export const NavBar = ({toggleDrawer}) => {
                 aria-haspopup="true"
                 onClick={handleMenu}
                 color="inherit"
-              >
-                <AccountCircle />
+              > {
+                status === 'authenticated' ? <Logout/> : <AccountCircle />
+              }
               </IconButton>
               <Menu
                 id="menu-appbar"
@@ -46,9 +68,13 @@ export const NavBar = ({toggleDrawer}) => {
                   horizontal: 'right',
                 }}
                 open={Boolean(anchorEl)}
-                // onClose={handleClose}
+                onClose={handleClose}
               >
-                <MenuItem onClick={handleClose}>Iniciar sesión</MenuItem>
+                {
+                status === 'authenticated' 
+                  ? <MenuItem onClick={onLogoutMenu}>Cerrar sesión</MenuItem> 
+                  : <MenuItem onClick={onLoginMenu}>Iniciar sesión</MenuItem>
+              }
               </Menu>
             </div>
           </Toolbar>

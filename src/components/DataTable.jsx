@@ -32,6 +32,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { visuallyHidden } from '@mui/utils';
 import { AddCircle, Edit, EditNote, EditRoadTwoTone } from '@mui/icons-material';
+import { useAuthStore } from '../hooks';
 
 function createData(id, name, calories, fat, carbs, protein) {
   return {
@@ -163,6 +164,8 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const { numSelected } = props;
+  const {status} = useAuthStore();
+
   return (
     <Toolbar
       sx={[
@@ -187,26 +190,29 @@ function EnhancedTableToolbar(props) {
       >
         Sucursales
       </Typography>
-      {numSelected > 0 ? (
-        <>
-          <Tooltip title="Eliminar">
-            <IconButton >
-              <DeleteIcon sx={{ color: 'primary.contrastText' }}/>
+      {
+        status === 'authenticated' &&
+        ((numSelected > 0 ) ? (
+          <>
+            <Tooltip title="Eliminar">
+              <IconButton >
+                <DeleteIcon sx={{ color: 'primary.contrastText' }}/>
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Editar">
+            <IconButton>
+              <Edit sx={{ color: 'primary.contrastText' }}/>
+            </IconButton>
+            </Tooltip>
+          </>
+        ) : (
+          <Tooltip title="Crear nuevo">
+            <IconButton>
+              <AddCircle sx={{ color: 'primary.contrastText' }}/>
             </IconButton>
           </Tooltip>
-          <Tooltip title="Editar">
-          <IconButton>
-            <Edit sx={{ color: 'primary.contrastText' }}/>
-          </IconButton>
-          </Tooltip>
-        </>
-      ) : (
-        <Tooltip title="Crear nuevo">
-          <IconButton>
-            <AddCircle sx={{ color: 'primary.contrastText' }}/>
-          </IconButton>
-        </Tooltip>
-      )}
+        ))
+      }
     </Toolbar>
   );
 }
@@ -221,6 +227,8 @@ export default function EnhancedTable() {
   const [selected, setSelected] = React.useState([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const {status} = useAuthStore();
+
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -312,14 +320,14 @@ export default function EnhancedTable() {
 
                 return (
                   <TableRow
-                    hover = { selected.length === 0 }
+                    hover = { selected.length === 0 && status === 'authenticated' }
                     onClick={(event) => handleClick(event, row.id)}
                     // role="checkbox"
                     aria-checked={isItemSelected}
                     tabIndex={-1}
                     key={row.id}
                     selected={isItemSelected}
-                    sx={(selected.length === 0 || isItemSelected)  && { cursor: 'pointer' }}
+                    sx={((selected.length === 0 || isItemSelected))  && { cursor: 'pointer' }}
                   >
                     <TableCell align="center">{++index}</TableCell>
                     <TableCell

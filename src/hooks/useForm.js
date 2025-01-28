@@ -20,11 +20,29 @@ export const useForm = ( initialForm = {}, formValidations = {}) => {
 
 
     const onInputChange = ({ target }) => {
-        const { name, value } = target;
-        setFormState({
-            ...formState,
-            [ name ]: value
-        });
+        const { name, value, files, type } = target;
+
+        if (type === 'file') {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                setFormState({
+                    ...formState,
+                    [name]: value,
+                    [`${name}Base64`]: base64String
+                });
+            };
+            reader.readAsDataURL(file);
+            
+        }else{
+            setFormState({
+                ...formState,
+                [name]: value,
+            });
+        }
+        
+            
     }
 
     const onResetForm = () => {

@@ -36,6 +36,9 @@ import { useEffect } from 'react';
 import { useBranchesStore } from '../hooks/useBranchesStore';
 import { Avatar } from '@mui/material';
 import { getEnvVariables } from '../helpers';
+import { useDispatch } from 'react-redux';
+import { onToggleForm, toggleSelectBranch } from '../store';
+import Swal from 'sweetalert2';
 
 function createData(id, name, calories, fat, carbs, protein) {
   return {
@@ -168,7 +171,29 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const { numSelected } = props;
+  const dispatch = useDispatch();
   const {status} = useAuthStore();
+  const {selectedBranch, deleteBranch} = useBranchesStore();
+
+  const confirmDeleteBranch = ()=>{
+    Swal.fire({
+      title: `¿Esta seguro de eliminar la sucursal, "${selectedBranch.nombre}"?`,
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteBranch(selectedBranch.id);
+      }
+    });
+  }
+
+  const openFormEdit = ()=>{
+    dispatch(onToggleForm('edit'))
+  }
+
+  const openFormCreate = ()=>{
+    dispatch(onToggleForm('create'))
+  }
 
   return (
     <Toolbar
@@ -196,22 +221,22 @@ function EnhancedTableToolbar(props) {
       </Typography>
       {
         status === 'authenticated' &&
-        ((numSelected > 0 ) ? (
+        (( selectedBranch ) ? (
           <>
             <Tooltip title="Eliminar">
-              <IconButton >
+              <IconButton onClick={confirmDeleteBranch}>
                 <DeleteIcon sx={{ color: 'primary.contrastText' }}/>
               </IconButton>
             </Tooltip>
             <Tooltip title="Editar">
-            <IconButton>
+            <IconButton onClick={openFormEdit}>
               <Edit sx={{ color: 'primary.contrastText' }}/>
             </IconButton>
             </Tooltip>
           </>
         ) : (
           <Tooltip title="Crear nuevo">
-            <IconButton>
+            <IconButton onClick={openFormCreate}>
               <AddCircle sx={{ color: 'primary.contrastText' }}/>
             </IconButton>
           </Tooltip>
@@ -232,10 +257,17 @@ export default function EnhancedTable() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [dataHeadCells, setDataHeadCells] = React.useState([])
+  const [loadedBranches, setLoadedBranches] = React.useState([]);
   const {status} = useAuthStore();
   const { branches, getAllBranches } = useBranchesStore();
+  const dispatch = useDispatch();
 
   const { VITE_STORAGE_URL } = getEnvVariables();
+
+  useEffect(() => {
+    getAllBranches();
+  
+  }, [])
 
   useEffect(() => {
     if (branches.length > 0) {
@@ -252,13 +284,11 @@ export default function EnhancedTable() {
       }));
 
       setDataHeadCells(dataHead);
+      setLoadedBranches(branches);
+      setSelected([]);
     }
   }, [branches]);
 
-  useEffect(() => {
-    getAllBranches();
-  
-  }, [])
   
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -284,12 +314,15 @@ export default function EnhancedTable() {
     if (selected.length === 1) {
       if (selected[0] === id) {
         setSelected(newSelected);
+        dispatch(toggleSelectBranch(null));
       }
       return;
     };
 
     if (selectedIndex === -1) {
       newSelected = newSelected.concat(selected, id);
+      const dataSelectedBranch = branches.find((branch)=>branch.id === id);
+      dispatch(toggleSelectBranch(dataSelectedBranch));
     } else if (selectedIndex === 0) {
       newSelected = newSelected.concat(selected.slice(1));
     } else if (selectedIndex === selected.length - 1) {
@@ -317,11 +350,12 @@ export default function EnhancedTable() {
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - branches.length) : 0;
 
   const visibleRows = React.useMemo(
-    () =>
-      [...branches]
+    () =>{
+      if (loadedBranches.length === 0) return [];
+      return [...loadedBranches]
         .sort(getComparator(order, orderBy))
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [order, orderBy, page, rowsPerPage],
+        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+    },[order, orderBy, page, rowsPerPage, loadedBranches],
   );
 
   return (

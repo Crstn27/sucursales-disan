@@ -5,6 +5,7 @@ import { NavBar } from "./components/NavBar"
 import EnhancedTable from "./components/DataTable"
 import { Login } from "./components/Login";
 import { Progress } from "./components/Progress";
+import { FormModal } from "./components/FormModal";
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
         <Login />
       </Container>
       <Progress/>
+      <FormModal />
     </>
   )
 }
